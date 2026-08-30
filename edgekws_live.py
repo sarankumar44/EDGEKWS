@@ -15,6 +15,8 @@ SAMPLE_RATE = 16000
 WINDOW_SECONDS = 1
 SAMPLES = SAMPLE_RATE * WINDOW_SECONDS
 
+MIC_DEVICE = 1
+
 THRESHOLD = 0.95
 
 LABELS = [
@@ -40,58 +42,83 @@ input_details = interpreter.get_input_details()
 output_details = interpreter.get_output_details()
 
 print("Model loaded successfully.")
-print("Input shape:", input_details[0]["shape"])
-print("Output shape:", output_details[0]["shape"])
+
+print("Input shape:",
+      input_details[0]["shape"])
+
+print("Output shape:",
+      output_details[0]["shape"])
 
 
 # ==========================================
-# MFCC Extraction
+# MFCC Processing
 # ==========================================
 
 def extract_mfcc(audio):
 
-    # Make audio exactly 1 second
+    # Make sure audio is exactly 1 second
     if len(audio) < SAMPLES:
+
         audio = np.pad(
             audio,
             (0, SAMPLES - len(audio))
         )
+
     else:
+
         audio = audio[:SAMPLES]
 
-    # Extract 13 MFCC features
+
+    # MFCC
     mfcc = librosa.feature.mfcc(
         y=audio,
         sr=SAMPLE_RATE,
         n_mfcc=13
     )
 
+
     # Force exactly 32 frames
+
     if mfcc.shape[1] < 32:
+
         mfcc = np.pad(
             mfcc,
-            ((0, 0), (0, 32 - mfcc.shape[1]))
+            (
+                (0, 0),
+                (0, 32 - mfcc.shape[1])
+            )
         )
 
     elif mfcc.shape[1] > 32:
+
         mfcc = mfcc[:, :32]
 
-    # Shape → (1, 13, 32, 1)
-    mfcc = mfcc[np.newaxis, ..., np.newaxis]
+
+    # CNN input shape
+    # (1, 13, 32, 1)
+
+    mfcc = mfcc[
+        np.newaxis,
+        ...,
+        np.newaxis
+    ]
 
     return mfcc.astype(np.float32)
 
 
 # ==========================================
-# Prediction
+# INT8 Prediction
 # ==========================================
 
 def predict(mfcc):
 
+    # Input quantization
     input_scale, input_zero = \
         input_details[0]["quantization"]
 
-    # Float MFCC → INT8
+
+    # Convert float MFCC → INT8
+
     mfcc_int8 = np.round(
         mfcc / input_scale + input_zero
     ).clip(
@@ -99,25 +126,40 @@ def predict(mfcc):
         127
     ).astype(np.int8)
 
+
+    # Give input to model
+
     interpreter.set_tensor(
         input_details[0]["index"],
         mfcc_int8
     )
 
+
+    # Run CNN
+
     interpreter.invoke()
+
+
+    # Get output
 
     output = interpreter.get_tensor(
         output_details[0]["index"]
     )
 
+
+    # Output quantization
+
     output_scale, output_zero = \
         output_details[0]["quantization"]
 
+
     # INT8 → probability
+
     probabilities = (
         output.astype(np.float32)
         - output_zero
     ) * output_scale
+
 
     prediction = int(
         np.argmax(probabilities)
@@ -127,30 +169,12 @@ def predict(mfcc):
         probabilities[0, prediction]
     )
 
+
     return prediction, confidence
 
 
 # ==========================================
-# Find Default Microphone
-# ==========================================
-
-default_device = sd.default.device
-
-print()
-print("Default audio device:", default_device)
-
-if default_device[0] is None:
-    print("ERROR: No default microphone found.")
-    print("Please connect a microphone and try again.")
-    exit()
-
-MIC_DEVICE = default_device[0]
-
-print("Using microphone device:", MIC_DEVICE)
-
-
-# ==========================================
-# Start EdgeKWS
+# Main Real-Time Loop
 # ==========================================
 
 print()
@@ -172,6 +196,7 @@ try:
     while True:
 
         # Record 1 second
+
         audio = sd.rec(
             SAMPLES,
             samplerate=SAMPLE_RATE,
@@ -182,25 +207,34 @@ try:
 
         sd.wait()
 
-        # (16000,1) → (16000,)
+
+        # Convert (16000,1) → (16000,)
+
         audio = audio[:, 0]
 
-        # Processing latency
+
+        # MFCC
+
         start_time = time.perf_counter()
 
         mfcc = extract_mfcc(audio)
 
-        prediction, confidence = predict(mfcc)
+
+        # CNN prediction
+
+        prediction, confidence = \
+            predict(mfcc)
+
 
         end_time = time.perf_counter()
+
 
         latency = (
             end_time - start_time
         ) * 1000
 
-        # ==================================
-        # Wake Word Detection
-        # ==================================
+
+        # Detection
 
         if (
             prediction == 0
