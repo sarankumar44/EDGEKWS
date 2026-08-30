@@ -1,1 +1,116 @@
+# EdgeKWS Experimental Results
 
+## Model Accuracy
+
+- Total test samples: 49
+- Correct predictions: 47
+- Accuracy: 95.92%
+
+---
+
+## INT8 Model
+
+- Model size: approximately 35.4 KB
+- Input shape: 1 × 13 × 32 × 1
+- Data type: INT8
+
+### Output Classes
+
+1. Dear Folk
+2. Unknown
+3. Background
+
+---
+
+## INT8 Inference Latency
+
+| Metric | Result |
+|---|---:|
+| Average | 0.335 ms |
+| Median | 0.096 ms |
+| Minimum | 0.055 ms |
+| Maximum | 8.18 ms |
+
+---
+
+## Full Pipeline Latency
+
+| Metric | Result |
+|---|---:|
+| Average | 32.50 ms |
+| Median | 32.24 ms |
+| Minimum | 6.38 ms |
+| Maximum | 74.91 ms |
+
+---
+
+## Latency Breakdown
+
+| Processing Stage | Average |
+|---|---:|
+| MFCC | 26.42 ms |
+| CNN | 0.43 ms |
+| MFCC + CNN | 26.85 ms |
+
+---
+
+## Wake-Word Threshold Testing
+
+| Threshold | Detected | Missed | False Triggers |
+|---:|---:|---:|---:|
+| 0.70 | 16/16 | 0 | 0/33 |
+| 0.75 | 16/16 | 0 | 0/33 |
+| 0.80 | 16/16 | 0 | 0/33 |
+| 0.85 | 16/16 | 0 | 0/33 |
+| 0.90 | 16/16 | 0 | 0/33 |
+| 0.95 | 16/16 | 0 | 0/33 |
+| 0.97 | 15/16 | 1 | 0/33 |
+| 0.98 | 15/16 | 1 | 0/33 |
+| 0.99 | 15/16 | 1 | 0/33 |
+
+### Selected Threshold
+
+**0.95 (95%)**
+
+At this threshold:
+
+- Dear Folk detected: 16/16
+- Missed: 0
+- False triggers: 0/33
+
+---
+
+## Confidence by Predicted Class
+
+### Dear Folk
+
+- Average: 0.994
+- Minimum: 0.965
+- Maximum: 0.996
+- Samples: 16
+
+### Unknown
+
+- Average: 0.994
+- Minimum: 0.973
+- Maximum: 0.996
+- Samples: 14
+
+### Background
+
+- Average: 0.981
+- Minimum: 0.750
+- Maximum: 0.996
+- Samples: 19
+
+---
+
+## Sample Detection Results
+
+### Dear Folk
+
+```text
+Actual      : Dear Folk
+Prediction  : Dear Folk
+Confidence  : 99.61%
+Detected    : True
