@@ -1,1 +1,14 @@
-
+{
+    "sample_rate": 16000,
+    "duration": 1.0,
+    "n_mfcc": 13,
+    "mfcc_frames": 32,
+    "classes": {
+        "0": "Dear Folk",
+        "1": "Unknown",
+        "2": "Background"
+    },
+    "model_parameters": 29507,
+    "int8_model_size_kb": 35.4,
+    "int8_test_accuracy_percent": 95.92
+}
