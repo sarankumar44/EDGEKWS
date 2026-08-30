@@ -1,1 +1,21 @@
+# Python cache
+__pycache__/
+*.pyc
 
+# Jupyter temporary files
+.ipynb_checkpoints/
+
+# Virtual environments
+venv/
+.venv/
+
+# Dataset and audio files
+dataset/
+*.wav
+*.mp3
+
+# Environment/secrets
+.env
+
+# Log files
+*.log
